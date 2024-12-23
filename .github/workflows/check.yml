@@ -22,22 +22,23 @@ jobs:
 
     - name: Check for updates
       id: check-updates
+      continue-on-error: true # 确保即使出错也继续执行
       run: |
         # 遍历每个 docker-compose.yml 文件
         IFS=$'\n'
         for FILE in ${{ steps.find-files.outputs.files }}; do
           echo "Checking $FILE..."
           
-          # 提取镜像信息
-          IMAGE=$(grep 'image:' "$FILE" | awk '{print $2}')
+          # 提取镜像信息，忽略解析失败的情况
+          IMAGE=$(grep 'image:' "$FILE" | awk '{print $2}' || echo "")
           if [ -z "$IMAGE" ]; then
-            echo "No image found in $FILE"
+            echo "No valid image found in $FILE, skipping..."
             continue
           fi
 
           # 获取镜像名称和当前版本
-          IMAGE_NAME=$(echo "$IMAGE" | cut -d':' -f1)
-          CURRENT_TAG=$(echo "$IMAGE" | cut -d':' -f2)
+          IMAGE_NAME=$(echo "$IMAGE" | cut -d':' -f1 || echo "")
+          CURRENT_TAG=$(echo "$IMAGE" | cut -d':' -f2 || echo "")
 
           # 检查是否存在 tag 信息
           if [ -z "$CURRENT_TAG" ]; then
@@ -46,8 +47,14 @@ jobs:
           fi
 
           # 获取 Docker Hub 最新版本（跳过 latest）
-          TAGS=$(curl -s "https://hub.docker.com/v2/repositories/$IMAGE_NAME/tags?page_size=10" | jq -r '.results[].name')
+          TAGS=$(curl -s "https://hub.docker.com/v2/repositories/$IMAGE_NAME/tags?page_size=10" | jq -r '.results[].name' || echo "")
           LATEST_TAG=$(echo "$TAGS" | grep -v '^latest$' | head -n 1)
+
+          # 确保标签信息有效
+          if [ -z "$LATEST_TAG" ]; then
+            echo "Could not fetch latest tag for $IMAGE_NAME, skipping..."
+            continue
+          fi
 
           echo "Image: $IMAGE_NAME"
           echo "Current tag: $CURRENT_TAG"
