@@ -1,0 +1,37 @@
+name: Check Latest Docker Image
+
+on:
+  workflow_dispatch: # 手动触发
+
+jobs:
+  check-latest-image:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check latest Docker image version
+      id: check-latest
+      run: |
+        # 获取最新版本号
+        LATEST_TAG=$(curl -s https://hub.docker.com/v2/repositories/cp0204/ttydbridge/tags?page_size=1 | jq -r '.results[0].name')
+        echo "Latest tag: $LATEST_TAG"
+        
+        # 设置当前版本
+        CURRENT_TAG="v0.0.3"
+        echo "Current tag: $CURRENT_TAG"
+        
+        # 检查版本是否一致
+        if [ "$LATEST_TAG" != "$CURRENT_TAG" ]; then
+          echo "::set-output name=update_needed::true"
+          echo "A newer version is available: $LATEST_TAG"
+        else
+          echo "::set-output name=update_needed::false"
+          echo "You are using the latest version."
+        fi
+
+    - name: Output result
+      run: |
+        if [ "${{ steps.check-latest.outputs.update_needed }}" == "true" ]; then
+          echo "A newer version is available."
+        else
+          echo "You are using the latest version."
+        fi
