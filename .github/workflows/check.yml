@@ -11,14 +11,17 @@ jobs:
     - name: Check latest Docker image version
       id: check-latest
       run: |
-        # 获取最新版本号
-        LATEST_TAG=$(curl -s https://hub.docker.com/v2/repositories/cp0204/ttydbridge/tags?page_size=1 | jq -r '.results[0].name')
-        echo "Latest tag: $LATEST_TAG"
+        # 获取所有标签，按时间降序排列
+        TAGS=$(curl -s https://hub.docker.com/v2/repositories/cp0204/ttydbridge/tags?page_size=10 | jq -r '.results[].name')
         
+        # 过滤掉 'latest' 标签，找到第一个不是 'latest' 的版本号
+        LATEST_TAG=$(echo "$TAGS" | grep -v '^latest$' | head -n 1)
+        echo "Latest tag: $LATEST_TAG"
+
         # 设置当前版本
         CURRENT_TAG="v0.0.3"
         echo "Current tag: $CURRENT_TAG"
-        
+
         # 检查版本是否一致
         if [ "$LATEST_TAG" != "$CURRENT_TAG" ]; then
           echo "::set-output name=update_needed::true"
