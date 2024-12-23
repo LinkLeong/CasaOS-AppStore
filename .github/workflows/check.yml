@@ -27,7 +27,7 @@ jobs:
         IFS=$'\n'
         for FILE in ${{ steps.find-files.outputs.files }}; do
           echo "Checking $FILE..."
-
+          
           # 提取镜像信息
           IMAGE=$(grep 'image:' "$FILE" | awk '{print $2}')
           if [ -z "$IMAGE" ]; then
@@ -38,6 +38,12 @@ jobs:
           # 获取镜像名称和当前版本
           IMAGE_NAME=$(echo "$IMAGE" | cut -d':' -f1)
           CURRENT_TAG=$(echo "$IMAGE" | cut -d':' -f2)
+
+          # 检查是否存在 tag 信息
+          if [ -z "$CURRENT_TAG" ]; then
+            echo "No specific tag for $IMAGE_NAME in $FILE, skipping..."
+            continue
+          fi
 
           # 获取 Docker Hub 最新版本（跳过 latest）
           TAGS=$(curl -s "https://hub.docker.com/v2/repositories/$IMAGE_NAME/tags?page_size=10" | jq -r '.results[].name')
