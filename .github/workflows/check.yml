@@ -1,40 +1,59 @@
-name: Check Latest Docker Image
+name: Check Updates for Docker Compose Files
 
 on:
   workflow_dispatch: # 手动触发
 
 jobs:
-  check-latest-image:
+  check-updates:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check latest Docker image version
-      id: check-latest
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Find all docker-compose.yml files
+      id: find-files
       run: |
-        # 获取所有标签，按时间降序排列
-        TAGS=$(curl -s https://hub.docker.com/v2/repositories/cp0204/ttydbridge/tags?page_size=10 | jq -r '.results[].name')
-        
-        # 过滤掉 'latest' 标签，找到第一个不是 'latest' 的版本号
-        LATEST_TAG=$(echo "$TAGS" | grep -v '^latest$' | head -n 1)
-        echo "Latest tag: $LATEST_TAG"
+        # 查找所有 docker-compose.yml 文件
+        FILES=$(find ./App -name "docker-compose.yml")
+        echo "Found files:"
+        echo "$FILES"
+        echo "::set-output name=files::$FILES"
 
-        # 设置当前版本
-        CURRENT_TAG="v0.0.3"
-        echo "Current tag: $CURRENT_TAG"
-
-        # 检查版本是否一致
-        if [ "$LATEST_TAG" != "$CURRENT_TAG" ]; then
-          echo "::set-output name=update_needed::true"
-          echo "A newer version is available: $LATEST_TAG"
-        else
-          echo "::set-output name=update_needed::false"
-          echo "You are using the latest version."
-        fi
-
-    - name: Output result
+    - name: Check for updates
+      id: check-updates
       run: |
-        if [ "${{ steps.check-latest.outputs.update_needed }}" == "true" ]; then
-          echo "A newer version is available."
-        else
-          echo "You are using the latest version."
-        fi
+        # 遍历每个 docker-compose.yml 文件
+        IFS=$'\n'
+        for FILE in ${{ steps.find-files.outputs.files }}; do
+          echo "Checking $FILE..."
+
+          # 提取镜像信息
+          IMAGE=$(grep 'image:' "$FILE" | awk '{print $2}')
+          if [ -z "$IMAGE" ]; then
+            echo "No image found in $FILE"
+            continue
+          fi
+
+          # 获取镜像名称和当前版本
+          IMAGE_NAME=$(echo "$IMAGE" | cut -d':' -f1)
+          CURRENT_TAG=$(echo "$IMAGE" | cut -d':' -f2)
+
+          # 获取 Docker Hub 最新版本（跳过 latest）
+          TAGS=$(curl -s "https://hub.docker.com/v2/repositories/$IMAGE_NAME/tags?page_size=10" | jq -r '.results[].name')
+          LATEST_TAG=$(echo "$TAGS" | grep -v '^latest$' | head -n 1)
+
+          echo "Image: $IMAGE_NAME"
+          echo "Current tag: $CURRENT_TAG"
+          echo "Latest tag: $LATEST_TAG"
+
+          # 检查是否需要更新
+          if [ "$CURRENT_TAG" != "$LATEST_TAG" ]; then
+            echo "Update needed for $IMAGE_NAME ($CURRENT_TAG -> $LATEST_TAG)"
+          else
+            echo "No update needed for $IMAGE_NAME ($CURRENT_TAG)"
+          fi
+        done
+
+    - name: Complete
+      run: echo "Compose file update check complete."
