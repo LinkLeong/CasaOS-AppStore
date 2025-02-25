@@ -33,8 +33,14 @@ def get_latest_version(image, strategy):
     else:
         return None, f"未知策略: {strategy}"
 
+
+        
+
+
+
 def send_notification(compose_file, service, image, current_version, latest_version, error=None):
     webhook_url = "https://open.feishu.cn/open-apis/bot/v2/hook/fb911d9e-af1a-49ea-89b6-c514fc0c06ee"
+
     
     if error:
         markdown = f"""
@@ -52,17 +58,19 @@ def send_notification(compose_file, service, image, current_version, latest_vers
         ​**当前版本:**​ {current_version}  
         ​**最新版本:**​ {latest_version}
         """
-    
+
+       
     try:
-        response = requests.post(
-            webhook_url,
-            json={
-                "msgtype": "markdown",
-                "markdown": {"content": markdown}
-            },
-            timeout=10
-        )
-        response.raise_for_status()
+        url = webhook_url
+        headers = {
+            "Content-Type": "application/json; charset=utf-8",
+        }
+        payload_message = {
+            "msg_type": "text",
+            "content": {markdown}
+        }
+        response = requests.post(url=url, data=json.dumps(payload_message), headers=headers)
+        
         print(f"📢 通知已发送至飞书机器人")
     except requests.exceptions.RequestException as e:
         print(f"⚠️ 通知发送失败: {e}")
