@@ -36,6 +36,9 @@ jobs:
 
           # 生成合法 JSON 并打印
           json_files=$(printf '%s\n' "${files[@]}" | jq -R . | jq -s .)
+          if [ -z "$json_files" ]; then
+            json_files='[]'
+          fi
           echo "生成的 JSON：" >&2
           echo "$json_files" | tee /tmp/json.log
 
@@ -46,6 +49,7 @@ jobs:
   check_versions:
     needs: find_compose_files
     runs-on: ubuntu-latest
+    if: ${{ needs.find_compose_files.outputs.compose_files != '[]' }}  # 新增条件
     strategy:
       matrix:
         compose_file: ${{ fromJson(needs.find_compose_files.outputs.compose_files) }}
