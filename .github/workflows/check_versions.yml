@@ -78,7 +78,7 @@ jobs:
           python check_versions.py "${{ matrix.compose_file }}" "${{ github.event.inputs.latest_strategy }}"
 
       - name: 上传版本检查报告
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: version-check-report-${{ matrix.compose_file }}
           path: version_check.md
