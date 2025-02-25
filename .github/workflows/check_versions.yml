@@ -43,9 +43,8 @@ jobs:
           echo "111："
           echo "$json_files"
           # 设置输出
-          echo "compose_files=${json_files}" >> "$GITHUB_OUTPUT"
-          echo "12："
-          echo $GITHUB_OUTPUT
+          #echo "test=world" >> "$GITHUB_OUTPUT"
+          echo "json_files=${json_files}" >> "$GITHUB_OUTPUT"
           
         shell: bash
 
