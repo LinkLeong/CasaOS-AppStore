@@ -59,6 +59,7 @@ jobs:
         run: |
           echo "compose_files 输出内容：" >&2
           echo '${{ toJSON(needs.find_compose_files.outputs.compose_files) }}'
+          
       - name: 检出代码
         uses: actions/checkout@v3
 
@@ -79,5 +80,5 @@ jobs:
       - name: 上传版本检查报告
         uses: actions/upload-artifact@v4
         with:
-          name: version-check-report-${{ matrix.compose_file }}
+          name: version-check-report-${{  $(cut -d/ -f2 <<< matrix.compose_file)  }}
           path: version_check.md
