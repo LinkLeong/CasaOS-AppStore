@@ -19,7 +19,7 @@ jobs:
       compose_files: ${{ steps.find_files.outputs.json_files }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3用途：Action/Checkout@V3
+        uses: actions/checkout@v3
       - name: 查找所有 docker-compose.yml 文件
         id: find_files
         run: |
