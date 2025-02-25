@@ -4,63 +4,137 @@ import requests
 import re
 
 def get_latest_version(image, strategy):
-    # 从镜像名称中提取仓库部分（去掉版本）
     repo = image.split(':')[0]
     url = f"https://hub.docker.com/v2/repositories/{repo}/tags/?page_size=100"
-    response = requests.get(url)
-    if response.status_code != 200:
-        return None
-    tags = response.json()['results']
+    
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        return None, str(e)
+    
+    tags = response.json().get('results', [])
     
     if strategy == 'latest':
         for tag in tags:
             if tag['name'] == 'latest':
-                return 'latest'
-        return None
+                return 'latest', None
+        return None, "未找到 'latest' 标签"
     elif strategy == 'semver':
-        # 筛选语义化版本（如 1.2.3）
-        semver_tags = [tag['name'] for tag in tags if re.match(r'^\d+\.\d+\.\d+$', tag['name'])]
-        if semver_tags:
-            return max(semver_tags, key=lambda x: [int(part) for part in x.split('.')])
-        return None
-    return None
+        semver_tags = []
+        pattern = re.compile(r'^\d+\.\d+\.\d+$')
+        for tag in tags:
+            if pattern.match(tag['name']):
+                semver_tags.append(tag['name'])
+        if not semver_tags:
+            return None, "未找到语义化版本标签"
+        sorted_tags = sorted(semver_tags, key=lambda x: tuple(map(int, x.split('.'))))
+        return sorted_tags[-1], None
+    else:
+        return None, f"未知策略: {strategy}"
+
+def send_notification(compose_file, service, image, current_version, latest_version, error=None):
+    webhook_url = "https://open.feishu.cn/open-apis/bot/v2/hook/fb911d9e-af1a-49ea-89b6-c514fc0c06ee"
+    
+    if error:
+        markdown = f"""
+        ### 🚨 服务检查失败 - {compose_file}
+        ​**服务名称:**​ {service}  
+        ​**镜像地址:**​ {image}  
+        ​**当前版本:**​ {current_version}  
+        ​**错误详情:**​ {error}
+        """
+    else:
+        markdown = f"""
+        ### ✅ 无需更新 - {compose_file}
+        ​**服务名称:**​ {service}  
+        ​**镜像地址:**​ {image}  
+        ​**当前版本:**​ {current_version}  
+        ​**最新版本:**​ {latest_version}
+        """
+    
+    try:
+        response = requests.post(
+            webhook_url,
+            json={
+                "msgtype": "markdown",
+                "markdown": {"content": markdown}
+            },
+            timeout=10
+        )
+        response.raise_for_status()
+        print(f"📢 通知已发送至飞书机器人")
+    except requests.exceptions.RequestException as e:
+        print(f"⚠️ 通知发送失败: {e}")
 
 def main(compose_file, strategy):
-    # 读取并解析 Compose 文件
-    with open(compose_file, 'r') as f:
-        compose_data = yaml.safe_load(f)
+    try:
+        with open(compose_file, 'r') as f:
+            compose_data = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        send_notification(
+            compose_file,
+            "N/A",
+            "N/A",
+            "N/A",
+            None,
+            f"解析Compose文件失败: {e}"
+        )
+        return
+    
     services = compose_data.get('services', {})
     
-    # 处理每个服务
     for service, config in services.items():
         image = config.get('image')
-        if image:
-            # 分离镜像名称和版本
-            parts = image.split(':')
-            if len(parts) == 2:
-                repo, version = parts
+        if not image:
+            continue
+        
+        parts = image.split(':')
+        if len(parts) == 2:
+            repo, version = parts
+        else:
+            repo, version = image, 'latest'
+        
+        latest_version, error = get_latest_version(repo, strategy)
+        update_needed = False
+        
+        if latest_version is not None:
+            update_needed = (version != latest_version)
+        else:
+            update_needed = True
+        
+        print(f"🔍 检查服务: {service}/{image}")
+        if latest_version is not None:
+            print(f"  当前版本: {version}")
+            print(f"  最新版本: {latest_version}")
+            print(f"  需要更新: {'是' if update_needed else '否'}")
+        else:
+            print(f"  ❌ 发生错误: {error}")
+            print(f"  需要更新: 是")
+        
+        with open('version_check.md', 'a') as report:
+            report.write(f"## 📊 {compose_file} 版本检查结果\n")
+            report.write(f"### 服务: {service}\n")
+            report.write(f"- ​**镜像地址:**​ {image}\n")
+            if latest_version is not None:
+                report.write(f"- ​**当前版本:**​ {version}\n")
+                report.write(f"- ​**最新版本:**​ {latest_version}\n")
+                report.write(f"- ​**需要更新:**​ {'是' if update_needed else '否'}\n")
             else:
-                repo, version = image, 'latest'  # 未指定版本时默认为 latest
-            
-            # 获取 Docker Hub 最新版本
-            latest_version = get_latest_version(repo, strategy)
-            if latest_version:
-                update_needed = version != latest_version
-                # 输出到控制台
-                print(f"检查 {compose_file}")
-                print(f"服务: {service}")
-                print(f"  镜像: {image}")
-                print(f"  最新版本: {latest_version}")
-                print(f"  需要更新: {'是' if update_needed else '否'}")
-                # 写入报告文件
-                with open('version_check.md', 'a') as report:
-                    report.write(f"### 检查 {compose_file}\n")
-                    report.write(f"**服务:** {service}\n")
-                    report.write(f"- **镜像:** {image}\n")
-                    report.write(f"- **最新版本:** {latest_version}\n")
-                    report.write(f"- **需要更新:** {'是' if update_needed else '否'}\n\n")
+                report.write(f"- ​**错误信息:**​ {error}\n")
+                report.write(f"- ​**需要更新:**​ 是\n\n")
+        
+        if latest_version is None or not update_needed:
+            send_notification(
+                compose_file,
+                service,
+                image,
+                version,
+                latest_version,
+                error
+            )
 
 if __name__ == "__main__":
-    compose_file = sys.argv[1]  # Compose 文件路径
-    strategy = sys.argv[2]      # 最新版本策略
+    compose_file = sys.argv[1]
+    strategy = sys.argv[2]
     main(compose_file, strategy)
