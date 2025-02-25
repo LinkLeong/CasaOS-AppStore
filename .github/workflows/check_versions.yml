@@ -35,7 +35,7 @@ jobs:
           printf '%s\n' "${files[@]}" | tee /tmp/files.log
 
           # 生成合法 JSON 并打印
-          json_files=$(printf '%s\n' "${files[@]}" | jq -s '.')
+          json_files=$(printf '%s\n' "${files[@]}" | jq -R . | jq -s .)
           echo "生成的 JSON：" >&2
           echo "$json_files" | tee /tmp/json.log
 
