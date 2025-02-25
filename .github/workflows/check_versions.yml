@@ -15,6 +15,9 @@ on:
 jobs:
   check_versions:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compose_file: ${{ fromJson(steps.find_compose_files.outputs.files) }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v3
@@ -31,20 +34,12 @@ jobs:
 
       - name: 查找所有 docker-compose.yml 文件
         id: find_compose_files
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const { promisify } = require('util');
-            const { exec } = require('child_process');
-            const execAsync = promisify(exec);
-            const { stdout } = await execAsync('find Apps -name "docker-compose.yml" -type f');
-            const files = stdout.trim().split('\n');
-            core.setOutput('files', files);
+        run: |
+          files=$(find Apps -name "docker-compose.yml" -type f)
+          echo "::set-output name=files::[\"$files\"]"
+        shell: bash
 
       - name: 检查版本
-        strategy:
-          matrix:
-            compose_file: ${{ steps.find_compose_files.outputs.files }}
         run: |
           python check_versions.py ${{ matrix.compose_file }} ${{ github.event.inputs.latest_strategy }}
 
