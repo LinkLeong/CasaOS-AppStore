@@ -1,0 +1,55 @@
+name: Check Docker Compose Image Versions
+
+on:
+  workflow_dispatch:
+    inputs:
+      latest_strategy:
+        description: '选择确定最新版本的策略'
+        required: true
+        default: 'latest'
+        type: choice
+        options:
+          - latest  # 使用 'latest' 标签作为最新版本
+          - semver  # 使用最高语义化版本（如 v1.2.3）作为最新版本
+
+jobs:
+  check_versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pyyaml
+
+      - name: 查找所有 docker-compose.yml 文件
+        id: find_compose_files
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { promisify } = require('util');
+            const { exec } = require('child_process');
+            const execAsync = promisify(exec);
+            const { stdout } = await execAsync('find Apps -name "docker-compose.yml" -type f');
+            const files = stdout.trim().split('\n');
+            core.setOutput('files', files);
+
+      - name: 检查版本
+        strategy:
+          matrix:
+            compose_file: ${{ steps.find_compose_files.outputs.files }}
+        run: |
+          python check_versions.py ${{ matrix.compose_file }} ${{ github.event.inputs.latest_strategy }}
+
+      - name: 上传版本检查报告
+        uses: actions/upload-artifact@v3
+        with:
+          name: version-check-report
+          path: version_check.md
