@@ -79,7 +79,6 @@ jobs:
 
       - name: Generate safe artifact name
         run: |
-          safe_name=$(echo "${matrix.compose_file}" | tr '/' '')
           safe_name=$(basename $(dirname "${{ matrix.compose_file }}"))
           echo "$safe_name"
           echo "SAFE_NAME=$safe_name" >> $GITHUB_ENV
