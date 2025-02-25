@@ -52,9 +52,9 @@ jobs:
   check_versions:
     needs: find_compose_files
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        compose_file: ${{ fromJson(needs.find_compose_files.outputs.compose_files) }}
+    # strategy:
+    #   matrix:
+    #     compose_file: ${{ fromJson(needs.find_compose_files.outputs.compose_files) }}
     steps:
       - name: 打印 compose_files 内容
         run: |
