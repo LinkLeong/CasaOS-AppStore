@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        compose_file: ${{ fromJson($GITHUB_OUTPUT) }}
+        compose_file: ${{ fromJson("$GITHUB_OUTPUT") }}
     steps:
       - name: 打印 compose_files 内容
         run: |
