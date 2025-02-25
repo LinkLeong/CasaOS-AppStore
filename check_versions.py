@@ -67,10 +67,10 @@ def send_notification(compose_file, service, image, current_version, latest_vers
         }
         payload_message = {
             "msg_type": "text",
-            "content": {markdown}
+            "content": {"text":markdown}
         }
         response = requests.post(url=url, data=json.dumps(payload_message), headers=headers)
-        
+        print(response)
         print(f"📢 通知已发送至飞书机器人")
     except requests.exceptions.RequestException as e:
         print(f"⚠️ 通知发送失败: {e}")
