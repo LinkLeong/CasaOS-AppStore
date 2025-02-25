@@ -36,9 +36,9 @@ jobs:
 
           # 生成合法 JSON 并打印
           json_files=$(printf '%s\n' "${files[@]}" | jq -R . | jq -s .)
-          if [ -z "$json_files" ]; then
-            json_files='[]'
-          fi
+          
+          json_files='["Apps/Ombi/docker-compose.yml","Apps/Snapdrop/docker-compose.yml"]'
+          
           echo "生成的 JSON：" >&2
           echo "$json_files" | tee /tmp/json.log
 
