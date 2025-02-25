@@ -41,8 +41,8 @@ jobs:
           echo "$json_files" | tee /tmp/json.log
 
           # 设置输出
-          echo "compose_files=${json_files}" >> $GITHUB_OUTPUT
-          echo "$GITHUB_OUTPUT"
+          echo "compose_files=${json_files}" >> "$GITHUB_OUTPUT"
+          echo $GITHUB_OUTPUT
           
         shell: bash
 
