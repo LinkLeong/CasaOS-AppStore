@@ -51,14 +51,14 @@ jobs:
   check_versions:
     needs: find_compose_files
     runs-on: ubuntu-latest
-    # strategy:
-    #   matrix:
-    #     compose_file: ${{ fromJson(needs.find_compose_files.outputs.compose_files) }}
+    strategy:
+      matrix:
+        compose_file: ${{ fromJson(needs.find_compose_files.outputs.compose_files) }}
     steps:
       - name: 打印 compose_files 内容
         run: |
           echo "compose_files 输出内容：" >&2
-          echo '${{ toJSON(needs.find_compose_files.outputs) }}'
+          echo '${{ toJSON(needs.find_compose_files.outputs.compose_files) }}'
       - name: 检出代码
         uses: actions/checkout@v3
 
