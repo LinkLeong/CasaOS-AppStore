@@ -43,7 +43,7 @@ jobs:
           # 设置输出
           echo "compose_files=${json_files}" >> $GITHUB_OUTPUT
           echo "$GITHUB_OUTPUT"
-          echo "${{ fromJson(echo "$GITHUB_OUTPUT") }}"
+          echo "${{ fromJson("$GITHUB_OUTPUT") }}"
           
         shell: bash
 
