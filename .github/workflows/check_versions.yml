@@ -24,8 +24,9 @@ jobs:
       - name: 查找所有 docker-compose.yml 文件
         id: find_files
         run: |
-          files=$(find Apps -name "docker-compose.yml" -type f | jq -R . | jq -s .)
-          echo "files=$files" >> $GITHUB_OUTPUT
+          mapfile -t files < <(find Apps -name "docker-compose.yml" -type f)
+          json_files=$(printf '%s\n' "${files[@]}" | jq -R . | jq -s .)
+          echo "files=$json_files" >> $GITHUB_OUTPUT
         shell: bash
 
   check_versions:
