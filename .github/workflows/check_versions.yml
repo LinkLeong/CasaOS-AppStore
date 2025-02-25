@@ -13,11 +13,27 @@ on:
           - semver  # 使用最高语义化版本（如 v1.2.3）作为最新版本
 
 jobs:
+  find_compose_files:
+    runs-on: ubuntu-latest
+    outputs:
+      compose_files: ${{ steps.find_files.outputs.files }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 查找所有 docker-compose.yml 文件
+        id: find_files
+        run: |
+          files=$(find Apps -name "docker-compose.yml" -type f | jq -R . | jq -s .)
+          echo "files=$files" >> $GITHUB_OUTPUT
+        shell: bash
+
   check_versions:
+    needs: find_compose_files
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        compose_file: ${{ fromJson(steps.find_compose_files.outputs.files) }}
+        compose_file: ${{ fromJson(needs.find_compose_files.outputs.compose_files) }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v3
@@ -32,19 +48,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests pyyaml
 
-      - name: 查找所有 docker-compose.yml 文件
-        id: find_compose_files
-        run: |
-          files=$(find Apps -name "docker-compose.yml" -type f)
-          echo "::set-output name=files::[\"$files\"]"
-        shell: bash
-
       - name: 检查版本
         run: |
-          python check_versions.py ${{ matrix.compose_file }} ${{ github.event.inputs.latest_strategy }}
+          python check_versions.py "${{ matrix.compose_file }}" "${{ github.event.inputs.latest_strategy }}"
 
       - name: 上传版本检查报告
         uses: actions/upload-artifact@v3
         with:
-          name: version-check-report
+          name: version-check-report-${{ matrix.compose_file }}
           path: version_check.md
