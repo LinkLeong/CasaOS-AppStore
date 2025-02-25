@@ -24,8 +24,22 @@ jobs:
       - name: 查找所有 docker-compose.yml 文件
         id: find_files
         run: |
+          # 显式安装 jq（可选，如果版本过低）
+          sudo apt-get update && sudo apt-get install jq -y
+
+          # 查找文件并生成 JSON 数组
           mapfile -t files < <(find Apps -name "docker-compose.yml" -type f)
+
+          # 调试输出
+          echo "找到的文件列表：" >&2
+          printf '%s\n' "${files[@]}" | tee /tmp/files.log
+
+          # 生成合法 JSON
           json_files=$(printf '%s\n' "${files[@]}" | jq -s '.')
+          echo "生成的 JSON：" >&2
+          echo "$json_files" | tee /tmp/json.log
+
+          # 设置输出
           echo "::set-output name=compose_files::${json_files}"
         shell: bash
 
