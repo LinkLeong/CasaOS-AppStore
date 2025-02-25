@@ -59,7 +59,7 @@ jobs:
       - name: 打印 compose_files 内容
         run: |
           echo "compose_files 输出内容：" >&2
-          echo "${{ needs.find_compose_files.outputs.compose_files }}" >&2
+          echo "${{ needs.find_compose_files.outputs }}" >&2
       - name: 检出代码
         uses: actions/checkout@v3
 
