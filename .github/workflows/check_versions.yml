@@ -39,9 +39,11 @@ jobs:
           
           echo "生成的 JSON：" >&2
           echo "$json_files" | tee /tmp/json.log
-
+          echo "111："
+          echo "$json_files"
           # 设置输出
-          echo "compose_files=${json_files}" >> "$GITHUB_OUTPUT"
+          echo "${json_files}" >> "$GITHUB_OUTPUT"
+          echo "12："
           echo $GITHUB_OUTPUT
           
         shell: bash
