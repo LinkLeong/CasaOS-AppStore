@@ -77,8 +77,14 @@ jobs:
         run: |
           python check_versions.py "${{ matrix.compose_file }}" "${{ github.event.inputs.latest_strategy }}"
 
+      - name: Generate safe artifact name
+        run: |
+          safe_name=$(echo "${matrix.compose_file}" | tr '/' '')
+          file_hash=$(sha256sum "${matrix.compose_file}" | cut -d ' ' -f 1)
+          safe_name="version-check-report-${safe_name}-${file_hash}"
+          echo "SAFE_NAME=$safe_name" >> $GITHUB_ENV
       - name: 上传版本检查报告
         uses: actions/upload-artifact@v4
         with:
-          name: version-check-report-${{ matrix.compose_file.replace('/', '') }}
+          name: ${{ env.SAFE_NAME }}
           path: version_check.md
