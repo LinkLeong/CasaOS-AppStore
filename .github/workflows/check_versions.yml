@@ -9,8 +9,8 @@ on:
         default: 'latest'
         type: choice
         options:
-          - latest  # 使用 'latest' 标签作为最新版本
-          - semver  # 使用最高语义化版本（如 v1.2.3）作为最新版本
+          - latest
+          - semver
 
 jobs:
   find_compose_files:
@@ -25,8 +25,8 @@ jobs:
         id: find_files
         run: |
           mapfile -t files < <(find Apps -name "docker-compose.yml" -type f)
-          json_files=$(printf '%s\n' "${files[@]}" | jq -R . | jq -s .)
-          echo "files=$json_files" >> $GITHUB_OUTPUT
+          json_files=$(printf '%s\n' "${files[@]}" | jq -s '.')
+          echo "::set-output name=compose_files::${json_files}"
         shell: bash
 
   check_versions:
